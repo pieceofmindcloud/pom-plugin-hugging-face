@@ -57,6 +57,7 @@
   "search.details": "Detalhes",
   "search.downloaded": "Baixado",
   "search.downloading": "Baixando",
+  "search.downloads": "Downloads",
   "search.gated": "Gated",
   "search.ggufOnly": "Apenas GGUF",
   "search.hint": "Busque por nome, repositório, autor ou termos relacionados.",

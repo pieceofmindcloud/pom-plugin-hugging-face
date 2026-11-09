@@ -2,6 +2,9 @@
 name = "pom-plugin-hugging-face"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "POM plugin: search Hugging Face for GGUF models, download them to the machines of a POM network and set the access token."
+repository = "https://github.com/pieceofmindcloud/pom-plugin-hugging-face"
 build = "build.rs"
 
 [lib]

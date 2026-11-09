@@ -26,6 +26,8 @@ screen; the Models screen and "Download here" in a deploy keep working.
 | `release/manifest.json` | release contract: ABI, `feature_set`, preferences schema |
 | `scripts/` | UI build, native build, packaging, CI plan, license server upload |
 | `tests/contract.rs` | static contract checks of both manifests |
+| `docs/` | the guide shown in POM's Documentation, and `screenshots/` for the Plugins store card |
+| `LICENSE` | MIT |
 
 ## Build and verify
 
@@ -55,3 +57,15 @@ With `POM_DEV_MODE=1` and this repository mounted next to the POM (under
 `/opt/pom/dev-plugins`), **Plugins** offers a rebuild that runs the
 `development.rebuild` steps of `ui/manifest.json`, then `cargo build`, and
 installs the result without a license.
+
+## License and trademarks
+
+The plugin is MIT licensed (`LICENSE`).
+
+Hugging Face and the Hugging Face logo are trademarks of Hugging Face, Inc.
+This plugin is an independent project of the POM authors: it is not affiliated
+with, sponsored or endorsed by Hugging Face, Inc. It uses the public Hugging
+Face Hub API (through the POM node, and the public trending list straight from
+the browser) under the Hub's terms; the models it downloads keep their own
+licenses, which the screen shows before a download. GGUF is the file format of
+the llama.cpp project.

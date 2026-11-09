@@ -57,6 +57,7 @@
   "search.details": "Details",
   "search.downloaded": "Downloaded",
   "search.downloading": "Downloading",
+  "search.downloads": "Downloads",
   "search.gated": "Gated",
   "search.ggufOnly": "Only GGUF",
   "search.hint": "Search by model name, repository, author, or related terms.",

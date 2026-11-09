@@ -163,7 +163,8 @@ function SearchTab({ t, onSettled, onSettings }: { t: T; onSettled: () => void; 
     <>
       <FullBleedToolbar>
         <Field label={t("search.label")} className="pb-grow">
-          <div className="pb-row">
+          <div className="pb-search">
+            <div className="pb-search-field">
             <Input
               value={input}
               onChange={(event: { target: { value: string } }) => setInput(event.target.value)}
@@ -178,6 +179,7 @@ function SearchTab({ t, onSettled, onSettings }: { t: T; onSettled: () => void; 
               aria-label={t("search.aria")}
               data-guide="model-search"
             />
+            </div>
             <Button size="sm" onClick={() => { setQuery(input.trim()); setPage(1); }}>
               {t("search.button")}
             </Button>
@@ -226,7 +228,7 @@ function SearchTab({ t, onSettled, onSettings }: { t: T; onSettled: () => void; 
                 <tr>
                   <th>{t("search.columnName")}</th>
                   <th>{t("search.columnState")}</th>
-                  <th>{t("search.mostDownloaded")}</th>
+                  <th>{t("search.downloads")}</th>
                   <th>{t("search.likes")}</th>
                   <th>{t("search.updated")}</th>
                   <th />
@@ -339,7 +341,7 @@ function DetailsDialog({
           </div>
           <dl className="pb-facts">
             <div><dt>{t("details.license")}</dt><dd>{model.license.detected ? model.license.name || model.license.id || model.license.raw_value : t("details.licenseUnknown")}</dd></div>
-            <div><dt>{t("search.mostDownloaded")}</dt><dd className="pb-mono">{fmt.num(model.downloads)}</dd></div>
+            <div><dt>{t("search.downloads")}</dt><dd className="pb-mono">{fmt.num(model.downloads)}</dd></div>
             <div><dt>{t("search.likes")}</dt><dd className="pb-mono">{fmt.num(model.likes)}</dd></div>
           </dl>
           {model.tags.length > 0 && <div className="pb-badges">{model.tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</div>}

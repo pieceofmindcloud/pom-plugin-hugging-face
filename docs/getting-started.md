@@ -3,6 +3,8 @@
 **Search Models** appears in the menu once the Hugging Face plugin is
 installed. It has three tabs.
 
+![Search Models, with the trending GGUF models of Hugging Face.](screenshots/search.png)
+
 ## Search
 
 Type a model name, an author or a repository id; the list updates as you type.
@@ -12,6 +14,9 @@ downloads or by the last update.
 
 Open a model to see its license, tags and every GGUF quantisation with its
 size. **Download** on a quantisation opens the download dialog:
+
+![A model's details: license, tags and its GGUF quantisations.](screenshots/details.png)
+
 
 - **Download on** picks this machine or another machine of the network. Another
   machine downloads with its own Hugging Face token into its own models folder
@@ -24,12 +29,16 @@ A gated or private model needs a token that has access to it (see Settings).
 
 ## Downloads
 
+![The Downloads tab, with this machine's downloads.](screenshots/downloads.png)
+
 The model downloads of this machine and of the other machines of the network,
 with progress, speed and time left. A running download can be cancelled; a
 failed or cancelled one can be tried again or dismissed. A finished download
 lands in the model folders and shows on the **Models** screen.
 
 ## Settings
+
+![The Settings tab, with the access token field.](screenshots/settings.png)
 
 The machine's Hugging Face access token, for private and gated models. The
 field is always empty: the node only shows the last characters of the token it
@@ -38,3 +47,9 @@ holds and where it came from. Environment variables (`HF_TOKEN`,
 
 Starting or cancelling downloads and saving the token need a POM that offers
 writes to plugin screens; on an older POM the screen says so and only searches.
+
+## Trademarks
+
+Hugging Face is a trademark of Hugging Face, Inc. This plugin is not affiliated
+with, sponsored or endorsed by Hugging Face, Inc. The models keep their own
+licenses, shown before each download.

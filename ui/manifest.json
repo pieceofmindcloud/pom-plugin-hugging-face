@@ -4,10 +4,15 @@
   "lifecycle": "resident",
   "icon_image": "ui/icon.png",
   "description": {
-    "en": "Search Hugging Face for GGUF models, download them into this machine's model folders or another machine's, follow the downloads and set the access token.",
-    "pt-BR": "Procure modelos GGUF no Hugging Face, baixe para as pastas de modelos desta máquina ou de outra, acompanhe os downloads e configure o token de acesso."
+    "en": "Find GGUF models on Hugging Face and bring them to your POM network without leaving the panel. Search by name, author or repository (the trending GGUF models show with no account), compare each repository's quantisations by size and license, and download the one you pick into the model folders of this machine or of any other machine of the network - split models come with all their parts, and the vision projector and MTP draft can come along. A Downloads tab follows every machine's progress, with cancel, retry and dismiss, and a Settings tab holds the access token for private and gated models. Not affiliated with Hugging Face, Inc.; Hugging Face is a trademark of Hugging Face, Inc.",
+    "pt-BR": "Encontre modelos GGUF no Hugging Face e traga para a sua rede POM sem sair do painel. Busque por nome, autor ou repositório (os modelos GGUF em alta aparecem sem conta), compare as quantizações de cada repositório por tamanho e licença, e baixe a escolhida para as pastas de modelos desta máquina ou de qualquer outra máquina da rede - modelos divididos vêm com todas as partes, e o projetor de visão e o rascunho MTP podem vir junto. Uma aba Downloads acompanha o progresso de cada máquina, com cancelar, tentar de novo e descartar, e uma aba Configurações guarda o token de acesso para modelos privados e restritos. Sem afiliação com a Hugging Face, Inc.; Hugging Face é uma marca registrada da Hugging Face, Inc."
   },
-  "screenshots": [],
+  "screenshots": [
+    "docs/screenshots/search.png",
+    "docs/screenshots/details.png",
+    "docs/screenshots/downloads.png",
+    "docs/screenshots/settings.png"
+  ],
   "documentation": {
     "guides": [
       {
