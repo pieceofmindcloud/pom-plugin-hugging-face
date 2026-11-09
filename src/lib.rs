@@ -250,14 +250,17 @@ mod tests {
             .query(&json!({
                 "operation": "host.configure",
                 "gateway": {"openai_base_url": "http://127.0.0.1:8080/v1", "api_key": "sk-secret"},
-                "workspace_root": "/data/workspace"
+                "workspace_root": crate::context::tests::TEST_ROOT
             }))
             .unwrap();
         let status = plugin.query(&json!({"operation": "rpc.status"})).unwrap();
         assert_eq!(status["context"]["gateway"], true);
         assert_eq!(
             status["workspace_state"],
-            format!("/data/workspace/.{PLUGIN_CODE}")
+            std::path::Path::new(crate::context::tests::TEST_ROOT)
+                .join(format!(".{PLUGIN_CODE}"))
+                .to_string_lossy()
+                .into_owned()
         );
         assert!(!status.to_string().contains("sk-secret"));
     }
