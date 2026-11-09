@@ -1,0 +1,82 @@
+{
+  "schema": "pom-plugin-ui/v1",
+  "plugin_code": "huggingface",
+  "lifecycle": "resident",
+  "icon_image": "ui/icon.png",
+  "description": {
+    "en": "Search Hugging Face for GGUF models, download them into this machine's model folders or another machine's, follow the downloads and set the access token.",
+    "pt-BR": "Procure modelos GGUF no Hugging Face, baixe para as pastas de modelos desta máquina ou de outra, acompanhe os downloads e configure o token de acesso."
+  },
+  "screenshots": [],
+  "documentation": {
+    "guides": [
+      {
+        "id": "getting-started",
+        "title": {
+          "en": "Search Models",
+          "pt-BR": "Procurar Modelos"
+        },
+        "asset": "docs/getting-started.md"
+      }
+    ],
+    "reference": []
+  },
+  "menu": [
+    {
+      "id": "search_models",
+      "label": {
+        "en": "Search Models",
+        "pt-BR": "Procurar Modelos"
+      },
+      "icon": "search",
+      "to": "/models",
+      "roles": [
+        "admin"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/models",
+      "screen": "models",
+      "full_bleed": true,
+      "roles": [
+        "admin"
+      ]
+    }
+  ],
+  "screens": {
+    "models": {
+      "module": "ui/screens.js",
+      "export": "models",
+      "styles": [
+        "ui/plugin.css"
+      ]
+    }
+  },
+  "i18n": {
+    "en": "i18n/en.json",
+    "pt-BR": "i18n/pt-BR.json"
+  },
+  "development": {
+    "rebuild": [
+      {
+        "run": [
+          "scripts/dev-ui.sh"
+        ],
+        "os": [
+          "linux",
+          "macos"
+        ]
+      }
+    ]
+  },
+  "assets": [
+    "ui/screens.js",
+    "ui/plugin.css",
+    "ui/icon.png",
+    "i18n/en.json",
+    "i18n/pt-BR.json",
+    "docs/getting-started.md"
+  ]
+}
