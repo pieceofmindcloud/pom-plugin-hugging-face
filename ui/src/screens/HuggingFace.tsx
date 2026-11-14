@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as hf from "../api";
 import { Modal, canWrite, format, kit, notify, usePluginI18n, useServingMachines } from "../host/runtime";
 import { useScreenReady } from "../host/ready";
+import { PieceLoading } from "./PieceLoading";
 
 type Tab = "search" | "downloads" | "settings";
 type T = (key: string, values?: Record<string, unknown>) => string;
@@ -40,7 +41,7 @@ function rememberTab(tab: Tab) {
 
 /** A read that settles once and, with `every`, polls again while mounted. */
 function useLoad<V>(load: (signal: AbortSignal) => Promise<V>, deps: unknown[], every?: (value: V | undefined) => number | null) {
-  const [state, setState] = useState<{ data?: V; error?: unknown; loading: boolean }>({ loading: true });
+  const [state, setState] = useState<{ data?: V; error?: unknown; loading: boolean; pending?: boolean }>({ loading: true, pending: true });
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((value) => value + 1), []);
   useEffect(() => {
@@ -51,12 +52,12 @@ function useLoad<V>(load: (signal: AbortSignal) => Promise<V>, deps: unknown[], 
       load(controller.signal).then(
         (data) => {
           last = data;
-          setState({ data, loading: false });
+          setState({ data, loading: false, pending: false });
           schedule();
         },
         (error) => {
           if (controller.signal.aborted) return;
-          setState((current) => ({ data: current.data, error, loading: false }));
+          setState((current) => ({ data: current.data, error, loading: false, pending: false }));
           schedule();
         },
       );
@@ -65,7 +66,7 @@ function useLoad<V>(load: (signal: AbortSignal) => Promise<V>, deps: unknown[], 
       const delay = every?.(last);
       if (delay != null && !controller.signal.aborted) timer = window.setTimeout(run, delay);
     };
-    setState((current) => ({ data: current.data, loading: current.data === undefined }));
+    setState((current) => ({ data: current.data, loading: current.data === undefined, pending: true }));
     run();
     return () => {
       controller.abort();
@@ -78,19 +79,94 @@ function useLoad<V>(load: (signal: AbortSignal) => Promise<V>, deps: unknown[], 
 
 export function HuggingFace() {
   const { t } = usePluginI18n();
-  const { FullBleedHeader, Tabs } = kit();
+  const { FullBleedHeader, Tabs, Select } = kit();
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [searchInput, setSearchInput] = useState(() => new URLSearchParams(window.location.search).get("q")?.trim() ?? "");
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("q")?.trim() ?? "");
   const [settled, setSettled] = useState(false);
+  const [ggufOnly, setGgufOnly] = useState(true);
+  const [sort, setSort] = useState<hf.Sort>("relevance");
+  const [searching, setSearching] = useState(false);
+  const status = useLoad((signal) => hf.providerStatus(signal), []);
+  const authenticated = status.data?.cli.authenticated;
   useScreenReady(settled);
 
   const choose = (next: Tab) => {
     setTab(next);
     rememberTab(next);
   };
+  const submitSearch = () => setSearchQuery(searchInput.trim());
 
   return (
     <div className="pb-page">
-      <FullBleedHeader title={t("screen.title")} subtitle={t("screen.subtitle")} />
+      <FullBleedHeader
+        className={tab === "search" ? "pb-hf-header pb-hf-header-search" : "pb-hf-header"}
+        title={t("screen.title")}
+        subtitle={t("screen.subtitle")}
+        actions={tab === "search" && (
+          <div className="pb-header-search">
+            <div className="pb-searchbox">
+              <input
+                className="pb-searchbox-input"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitSearch();
+                  }
+                }}
+                placeholder={t("search.placeholder")}
+                aria-label={t("search.aria")}
+                data-guide="model-search"
+              />
+              {status.data && authenticated === false && (
+                <button type="button" className="pb-chip" title={t("search.loginRequired")} onClick={() => choose("settings")}>
+                  {t("search.openSettings")}
+                </button>
+              )}
+              <button
+                type="button"
+                className={ggufOnly ? "pb-chip pb-chip-on" : "pb-chip"}
+                aria-pressed={ggufOnly}
+                title={t("search.ggufOnly")}
+                onClick={() => setGgufOnly(!ggufOnly)}
+              >
+                GGUF
+              </button>
+            </div>
+            <Select
+              className="pb-bar-control pb-sort"
+              title={t("search.sort")}
+              aria-label={t("search.sort")}
+              value={sort}
+              onChange={(event: { target: { value: string } }) => setSort(event.target.value as hf.Sort)}
+            >
+              <option value="relevance">{t("search.relevance")}</option>
+              <option value="downloads">{t("search.mostDownloaded")}</option>
+              <option value="recent">{t("search.recent")}</option>
+            </Select>
+            <button
+              type="button"
+              className="pb-search-button"
+              aria-label={t("search.button")}
+              title={t("search.button")}
+              aria-busy={searching}
+              disabled={searching}
+              onClick={submitSearch}
+            >
+              {searching ? (
+                <span className="pb-spinner" aria-hidden="true" />
+              ) : (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              )}
+            </button>
+          </div>
+        )}
+      />
       <Tabs
         items={TABS.map((value) => ({ value, label: t(`tabs.${value}`) }))}
         value={tab}
@@ -99,7 +175,18 @@ export function HuggingFace() {
       />
       <div className="pb-content">
         {!canWrite() && <p className="pb-note pb-note-amber">{t("screen.hostTooOld")}</p>}
-        {tab === "search" && <SearchTab t={t} onSettled={() => setSettled(true)} onSettings={() => choose("settings")} />}
+        {tab === "search" && (
+          <SearchTab
+            t={t}
+            input={searchInput}
+            query={searchQuery}
+            setQuery={setSearchQuery}
+            ggufOnly={ggufOnly}
+            sort={sort}
+            onSearching={setSearching}
+            onSettled={() => setSettled(true)}
+          />
+        )}
         {tab === "downloads" && <DownloadsTab t={t} onSettled={() => setSettled(true)} />}
         {tab === "settings" && <SettingsTab t={t} onSettled={() => setSettled(true)} />}
       </div>
@@ -117,20 +204,31 @@ function sorted(models: hf.ModelSummary[], sort: hf.Sort) {
   });
 }
 
-function SearchTab({ t, onSettled, onSettings }: { t: T; onSettled: () => void; onSettings: () => void }) {
-  const { FullBleedToolbar, Field, Input, Select, Button, Empty, ErrorState, Skeleton, ScrollX } = kit();
+function SearchTab({
+  t,
+  input,
+  query,
+  setQuery,
+  ggufOnly,
+  sort,
+  onSearching,
+  onSettled,
+}: {
+  t: T;
+  input: string;
+  query: string;
+  setQuery: (value: string) => void;
+  ggufOnly: boolean;
+  sort: hf.Sort;
+  onSearching: (busy: boolean) => void;
+  onSettled: () => void;
+}) {
+  const { Button, Empty, ErrorState, ScrollX } = kit();
   const fmt = format();
-  // `?q=` opens on a search: POM's first-run guide sends the operator here with one.
-  const asked = new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
-  const [input, setInput] = useState(asked);
-  const [query, setQuery] = useState(asked);
-  const [ggufOnly, setGgufOnly] = useState(true);
-  const [sort, setSort] = useState<hf.Sort>("relevance");
   const [page, setPage] = useState(1);
   const [detailsRepo, setDetailsRepo] = useState<string | null>(null);
   const [download, setDownload] = useState<{ file: hf.GgufFile; details: hf.ModelDetails } | null>(null);
 
-  const status = useLoad((signal) => hf.providerStatus(signal), []);
   const trending = useLoad((signal) => hf.trending(signal), []);
   const results = useLoad(
     (signal) => (query ? hf.search(query, ggufOnly, page, PAGE_SIZE, sort, signal) : Promise.resolve(null)),
@@ -144,84 +242,38 @@ function SearchTab({ t, onSettled, onSettings }: { t: T; onSettled: () => void; 
   // Search while typing, after a short pause.
   useEffect(() => {
     if (input.trim() === query) return;
-    const timer = window.setTimeout(() => {
-      setQuery(input.trim());
-      setPage(1);
-    }, 400);
+    const timer = window.setTimeout(() => setQuery(input.trim()), 400);
     return () => window.clearTimeout(timer);
-  }, [input, query]);
+  }, [input, query, setQuery]);
+
+  useEffect(() => setPage(1), [query, ggufOnly]);
+
+  const busy = query.length > 0 && Boolean(results.pending);
+  useEffect(() => {
+    onSearching(busy);
+  }, [busy, onSearching]);
+  useEffect(() => () => onSearching(false), [onSearching]);
 
   const hasQuery = query.length > 0;
   const models = useMemo(
     () => sorted(hasQuery ? (results.data?.models ?? []) : (trending.data ?? []), sort),
     [hasQuery, results.data, trending.data, sort],
   );
-  const authenticated = status.data?.cli.authenticated;
   const listing = hasQuery ? results : trending;
 
   return (
     <>
-      <FullBleedToolbar>
-        <Field label={t("search.label")} className="pb-grow">
-          <div className="pb-search">
-            <div className="pb-search-field">
-            <Input
-              value={input}
-              onChange={(event: { target: { value: string } }) => setInput(event.target.value)}
-              onKeyDown={(event: { key: string; preventDefault: () => void }) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  setQuery(input.trim());
-                  setPage(1);
-                }
-              }}
-              placeholder={t("search.placeholder")}
-              aria-label={t("search.aria")}
-              data-guide="model-search"
-            />
-            </div>
-            <Button size="sm" onClick={() => { setQuery(input.trim()); setPage(1); }}>
-              {t("search.button")}
-            </Button>
-          </div>
-        </Field>
-        <label className="pb-check">
-          <input type="checkbox" checked={ggufOnly} onChange={(event) => { setGgufOnly(event.target.checked); setPage(1); }} />
-          <span>{t("search.ggufOnly")}</span>
-        </label>
-        <Field label={t("search.sort")}>
-          <Select value={sort} onChange={(event: { target: { value: string } }) => setSort(event.target.value as hf.Sort)}>
-            <option value="relevance">{t("search.relevance")}</option>
-            <option value="downloads">{t("search.mostDownloaded")}</option>
-            <option value="recent">{t("search.recent")}</option>
-          </Select>
-        </Field>
-      </FullBleedToolbar>
-
-      {status.data && authenticated === false && (
-        <p className="pb-note pb-note-amber">
-          {t("search.loginRequired")}{" "}
-          <button type="button" className="pb-link" onClick={onSettings}>{t("search.openSettings")}</button>
-        </p>
+      {(listing.loading || busy) && (
+        <PieceLoading label={hasQuery ? t("search.searching") : t("search.loading")} />
       )}
-
-      {listing.loading && (
-        <div className="pb-stack">{[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="pb-skeleton-row" />)}</div>
-      )}
-      {listing.error != null && !listing.loading && (
+      {listing.error != null && !listing.loading && !busy && (
         <ErrorState error={listing.error} onRetry={listing.reload} />
       )}
-      {!listing.loading && listing.error == null && models.length === 0 && (
-        <Empty title={hasQuery ? t("search.noResults") : t("search.trending")}>
-          {hasQuery ? t("search.noResultsDetail") : t("search.trendingSubtitle")}
-        </Empty>
+      {!listing.loading && !busy && listing.error == null && models.length === 0 && (
+        <Empty title={t("search.noResults")}>{hasQuery ? t("search.noResultsDetail") : null}</Empty>
       )}
-      {models.length > 0 && (
+      {models.length > 0 && !busy && (
         <>
-          <div className="pb-caption">
-            <span>{hasQuery ? t("search.results", { count: results.data?.total ?? models.length }) : t("search.trending")}</span>
-            {!hasQuery && <span>{t("search.trendingSubtitle")}</span>}
-          </div>
           <ScrollX>
             <table className="pb-table">
               <thead>
@@ -246,6 +298,11 @@ function SearchTab({ t, onSettled, onSettings }: { t: T; onSettled: () => void; 
               <Button size="sm" variant="ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("search.previous")}</Button>
               <span className="pb-mono pb-faint">{fmt.num(page)}</span>
               <Button size="sm" variant="ghost" disabled={!results.data?.has_next} onClick={() => setPage(page + 1)}>{t("search.next")}</Button>
+            </div>
+          )}
+          {hasQuery && (
+            <div className="pb-results-count">
+              <span>{t("search.results", { count: results.data?.total ?? models.length })}</span>
             </div>
           )}
         </>
@@ -277,7 +334,7 @@ function ResultRow({ model, t, onOpen }: { model: hf.ModelSummary; t: T; onOpen:
           {model.repo_id}
         </button>
         {model.author && <span className="pb-muted pb-small">{model.author}</span>}
-        <p className="pb-muted pb-small pb-clamp">{model.description || t("search.hint")}</p>
+        {model.description && <p className="pb-muted pb-small pb-clamp">{model.description}</p>}
       </td>
       <td>
         <div className="pb-badges">
@@ -337,7 +394,10 @@ function DetailsDialog({
               {model.revision && <Badge mono>{model.revision}</Badge>}
               {model.last_modified && <span className="pb-faint pb-small">{fmt.since(model.last_modified)}</span>}
             </div>
-            <p className="pb-muted">{model.description || t("search.hint")}</p>
+            {model.description && <p className="pb-muted">{model.description}</p>}
+            <a className="pb-link pb-small" href={`https://huggingface.co/${model.repo_id}/tree/main`} target="_blank" rel="noopener noreferrer">
+              {t("details.openOnHub")}
+            </a>
           </div>
           <dl className="pb-facts">
             <div><dt>{t("details.license")}</dt><dd>{model.license.detected ? model.license.name || model.license.id || model.license.raw_value : t("details.licenseUnknown")}</dd></div>
@@ -348,7 +408,7 @@ function DetailsDialog({
           <div>
             <div className="pb-caption"><span>{t("details.ggufFiles")}</span><span className="pb-mono">{model.gguf_files.length}</span></div>
             {model.gguf_files.length === 0 ? (
-              <Empty title={t("search.noResults")}>{t("search.hint")}</Empty>
+              <Empty title={t("search.noResults")} />
             ) : (
               <div className="pb-files">
                 {model.gguf_files.map((file) => {
@@ -412,29 +472,31 @@ function DownloadDialog({
   const Dialog = Modal();
   const { Button, Badge, Field, Select, KeyValue } = kit();
   const fmt = format();
-  const machines = useServingMachines();
   const [busy, setBusy] = useState(false);
-  // "" is this machine; another id makes that machine download with its own
-  // token into its own folder.
-  const [target, setTarget] = useState("");
+  // The models folder of this machine to download into; "" is the first one.
+  const [folder, setFolder] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (!choice) {
-      setTarget("");
+      setFolder("");
       setPicked(new Set());
     }
   }, [choice]);
   if (!Dialog || !choice) return null;
   const { file, details } = choice;
-  const remote = machines.find((machine) => machine.nodeId === target) ?? null;
+  // An older POM lists the folders without their own free space: one row per
+  // path, the shared figure on the first.
+  const folders = details.storage.destinations
+    ?? details.storage.destination_paths.map((path, index) => ({ path, available_bytes: index === 0 ? details.storage.available_bytes : null }));
+  const chosen = folders.find((entry) => entry.path === folder) ?? folders[0] ?? null;
+  const available = chosen?.available_bytes ?? null;
   const { parts, sidecars } = hf.companions(file.filename, details.gguf_files);
   const together = [file, ...parts, ...sidecars.filter((sidecar) => picked.has(sidecar.filename))];
   const required = together.every((item) => item.size_bytes != null)
     ? together.reduce((sum, item) => sum + (item.size_bytes ?? 0), 0)
     : null;
-  const insufficient = required != null && details.storage.available_bytes != null && required > details.storage.available_bytes;
-  // The space and folders shown are this machine's; another one checks its own when it starts.
-  const blocked = !remote && (insufficient || !details.storage.destination_available);
+  const insufficient = required != null && available != null && required > available;
+  const blocked = insufficient || !details.storage.destination_available || !chosen;
 
   async function start() {
     setBusy(true);
@@ -444,7 +506,7 @@ function DownloadDialog({
         revision: details.revision,
         filename: file.filename,
         quantization: file.quantization,
-        nodeId: remote?.nodeId,
+        destination: details.storage.destinations && chosen ? chosen.path : undefined,
         extraFiles: together.slice(1).map((item) => item.filename),
       });
       for (const miss of started.failed ?? []) {
@@ -453,7 +515,7 @@ function DownloadDialog({
       const name = file.quantization || file.filename;
       void notify({
         title: t("download.started"),
-        body: remote ? t("download.startedOn", { name, machine: remote.name }) : t("download.startedDetail", { name }),
+        body: t("download.startedDetail", { name }),
         level: "success",
       });
       onStarted();
@@ -498,25 +560,23 @@ function DownloadDialog({
             <Badge tone="amber">{t("details.licenseUnknown")}</Badge>
           )}
         </div>
-        {machines.length > 0 && (
-          <Field label={t("download.on")}>
-            <Select value={target} onChange={(event: { target: { value: string } }) => setTarget(event.target.value)}>
-              <option value="">{t("download.thisMachine")}</option>
-              {machines.map((machine) => <option key={machine.nodeId} value={machine.nodeId}>{machine.name}</option>)}
+        {folders.length > 1 && (
+          <Field label={t("download.folder")}>
+            <Select value={chosen?.path ?? ""} onChange={(event: { target: { value: string } }) => setFolder(event.target.value)}>
+              {folders.map((entry) => (
+                <option key={entry.path} value={entry.path}>
+                  {entry.available_bytes != null ? `${entry.path} · ${t("download.freeSpace", { size: fmt.bytes(entry.available_bytes) })}` : entry.path}
+                </option>
+              ))}
             </Select>
           </Field>
         )}
-        {remote && <p className="pb-note">{t("download.remoteChecks", { machine: remote.name })}</p>}
         <dl className="pb-facts">
-          {!remote && (
-            <KeyValue label={t("download.destination")}>
-              <ul className="pb-plain pb-mono pb-small pb-path">
-                {details.storage.destination_paths.map((path) => <li key={path}>{path}</li>)}
-              </ul>
-            </KeyValue>
-          )}
+          <KeyValue label={t("download.destination")}>
+            <span className="pb-mono pb-small pb-path">{chosen?.path ?? "—"}</span>
+          </KeyValue>
           <KeyValue label={t("download.required")}>{fmt.bytes(required)}</KeyValue>
-          {!remote && <KeyValue label={t("download.available")}>{fmt.bytes(details.storage.available_bytes)}</KeyValue>}
+          <KeyValue label={t("download.available")}>{fmt.bytes(available)}</KeyValue>
           <KeyValue label={t("download.revision")}>{details.revision || "main"}</KeyValue>
         </dl>
         {parts.length > 0 && <p className="pb-muted pb-small">{t("download.splitParts", { count: parts.length + 1 })}</p>}
@@ -542,8 +602,8 @@ function DownloadDialog({
           </fieldset>
         )}
         {details.gated && <p className="pb-note pb-note-amber">{t("download.gatedDetail")}</p>}
-        {!remote && insufficient && <p className="pb-note pb-note-rose">{t("errors.insufficientSpace")}</p>}
-        {!remote && !details.storage.destination_available && <p className="pb-note pb-note-rose">{t("errors.destinationUnavailable")}</p>}
+        {insufficient && <p className="pb-note pb-note-rose">{t("errors.insufficientSpace")}</p>}
+        {!details.storage.destination_available && <p className="pb-note pb-note-rose">{t("errors.destinationUnavailable")}</p>}
       </div>
     </Dialog>
   );
@@ -751,6 +811,7 @@ function SettingsTab({ t, onSettled }: { t: T; onSettled: () => void }) {
               )}
             </div>
             <Footnote icon={null}>{t("settings.precedence")}</Footnote>
+            <Footnote icon={null}>{t("settings.trademark")}</Footnote>
           </div>
         )}
       </div>

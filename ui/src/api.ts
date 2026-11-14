@@ -52,7 +52,13 @@ export interface ModelDetails {
   license: { id: string | null; name: string | null; raw_value: string | null; detected: boolean };
   files: { filename: string }[];
   gguf_files: GgufFile[];
-  storage: { available_bytes: number | null; destination_available: boolean; destination_paths: string[] };
+  storage: {
+    available_bytes: number | null;
+    destination_available: boolean;
+    destination_paths: string[];
+    /** Each models folder with the free space of its own disk; absent on an older POM. */
+    destinations?: { path: string; available_bytes: number | null }[];
+  };
 }
 
 export interface ProviderStatus {
@@ -133,6 +139,8 @@ export interface StartDownload {
   quantization?: string | null;
   nodeId?: string;
   extraFiles?: string[];
+  /** One of `storage.destinations`; absent downloads into the first folder. */
+  destination?: string;
 }
 
 export function startDownload(request: StartDownload) {
@@ -143,6 +151,7 @@ export function startDownload(request: StartDownload) {
     quantization: request.quantization ?? null,
     ...(request.nodeId ? { node_id: request.nodeId } : {}),
     ...(request.extraFiles?.length ? { extra_files: request.extraFiles } : {}),
+    ...(request.destination ? { destination: request.destination } : {}),
   });
 }
 

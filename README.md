@@ -4,7 +4,7 @@ A POM plugin (`plugin_code: huggingface`): a native `cdylib` loaded by
 `pom-plugin-host`, with its own menu, screens and i18n embedded in the binary.
 
 It adds **Search Models** to the menu: one screen with three tabs - search
-Hugging Face and download a GGUF to this machine or another one, follow the
+Hugging Face and download a GGUF to one of this machine's model folders, follow the
 downloads of every machine, and set the access token. The work behind each tab
 stays in the POM node (`/api/ui/model-provider/*` and `/api/ui/jobs`); the
 screen calls it with the panel's session through the host SDK (`api.get`, and
@@ -62,7 +62,7 @@ installs the result without a license.
 
 The plugin is MIT licensed (`LICENSE`).
 
-Hugging Face and the Hugging Face logo are trademarks of Hugging Face, Inc.
+Hugging Face is a registered trademark of Hugging Face, Inc.; its logo is also a trademark.
 This plugin is an independent project of the POM authors: it is not affiliated
 with, sponsored or endorsed by Hugging Face, Inc. It uses the public Hugging
 Face Hub API (through the POM node, and the public trending list straight from

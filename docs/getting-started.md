@@ -18,9 +18,9 @@ size. **Download** on a quantisation opens the download dialog:
 ![A model's details: license, tags and its GGUF quantisations.](screenshots/details.png)
 
 
-- **Download on** picks this machine or another machine of the network. Another
-  machine downloads with its own Hugging Face token into its own models folder
-  and checks its free space when it starts.
+- The model downloads to this machine. With more than one POM model folder
+  configured, **POM model folder** picks the folder; the available space shown
+  is the free space of that folder's disk.
 - A model split in several files downloads all of them.
 - Vision projectors and MTP drafts of the same repository can be added with
   **Also download**.
@@ -50,6 +50,7 @@ writes to plugin screens; on an older POM the screen says so and only searches.
 
 ## Trademarks
 
-Hugging Face is a trademark of Hugging Face, Inc. This plugin is not affiliated
-with, sponsored or endorsed by Hugging Face, Inc. The models keep their own
-licenses, shown before each download.
+Hugging Face is a registered trademark of Hugging Face, Inc. This independent
+POM plugin uses the public Hugging Face Hub API and is not affiliated with,
+sponsored or endorsed by Hugging Face, Inc. The models keep their own licenses,
+shown before each download.
